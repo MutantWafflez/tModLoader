@@ -9,6 +9,7 @@ using Terraria.Localization;
 using Terraria.ModLoader.Core;
 using Terraria.ModLoader.Exceptions;
 using System.Linq;
+using JetBrains.Annotations;
 using Terraria.ModLoader.Config;
 using ReLogic.Content;
 using ReLogic.Content.Sources;
