@@ -413,6 +413,9 @@ internal class BuildProperties
 				if (tag == "modSource") {
 					properties.modSource = reader.ReadString();
 				}
+				if (tag == nameof(hasCoreModTransformers)) {
+					properties.hasCoreModTransformers = true;
+				}
 			}
 		}
 
