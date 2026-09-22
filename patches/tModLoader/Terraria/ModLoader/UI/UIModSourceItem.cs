@@ -1,3 +1,7 @@
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using ReLogic.Content;
+using ReLogic.OS;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -490,8 +494,8 @@ internal class UIModSourceItem : UIPanel
 			string csprojFile = Path.Combine(_mod, $"{modFolderName}.csproj");
 
 			string args = $"\"{csprojFile}\"";
-			var tMLPath = Path.GetDirectoryName(Path.GetFullPath(Assembly.GetExecutingAssembly().Location));
-			var porterPath = Path.Combine(tMLPath, "tModPorter", (Platform.IsWindows ? "tModPorter.bat" : "tModPorter.sh"));
+			var tMLPath = Path.GetFileName(Program.tMLAssemblyLocation);
+			var porterPath = Path.Combine(Path.GetDirectoryName(tMLPath), "tModPorter", (Platform.IsWindows ? "tModPorter.bat" : "tModPorter.sh"));
 
 			var porterInfo = new ProcessStartInfo() {
 				FileName = porterPath,

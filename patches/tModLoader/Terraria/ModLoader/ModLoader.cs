@@ -76,6 +76,7 @@ public static class ModLoader
 	internal static Action OnSuccessfulLoad;
 
 	internal static bool isLoading;
+	private static bool minimallyInitialized;
 
 	public static Mod[] Mods { get; private set; } = new Mod[0];
 
@@ -95,11 +96,24 @@ public static class ModLoader
 	/// <returns> Whether or not a mod with the provided internal name has been found. </returns>
 	public static bool HasMod(string name) => modsByName.ContainsKey(name);
 
-	internal static void EngineInit()
+	// Minimal subset of engine initialization for coremod loading
+	internal static void MinimalEngineInit()
 	{
+		if (minimallyInitialized) {
+			return;
+		}
+
 		FileAssociationSupport.UpdateFileAssociation();
 		FolderShortcutSupport.UpdateFolderShortcuts();
 		MonoModHooks.Initialize();
+		minimallyInitialized = true;
+	}
+
+	internal static void EngineInit()
+	{
+		if (!minimallyInitialized) {
+			MinimalEngineInit();
+		}
 		FNAFixes.Init();
 		LoaderManager.AutoLoad();
 	}
@@ -274,6 +288,12 @@ public static class ModLoader
 
 	internal static bool IsUnloadedModStillAlive(string name) => AssemblyManager.OldLoadContexts().Contains(name);
 
+	internal static void ClearMods()
+	{
+		Mods = Array.Empty<Mod>();
+		modsByName.Clear();
+	}
+
 	[MethodImpl(MethodImplOptions.NoInlining)]
 	private static WeakReference<Mod>[] GetWeakModRefs() => Mods.Select(x => new WeakReference<Mod>(x)).ToArray();
 
@@ -285,8 +305,7 @@ public static class ModLoader
 		WorldGen.clearWorld();
 		ModContent.UnloadModContent();
 
-		Mods = new Mod[0];
-		modsByName.Clear();
+		ClearMods();
 		ModContent.Unload();
 		MemoryTracking.Clear();
 		Thread.MemoryBarrier();

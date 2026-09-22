@@ -1,20 +1,21 @@
 #if NETCORE
+using log4net;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Runtime.Loader;
-using System.Text.RegularExpressions;
 using System.Threading;
-using System.Threading.Tasks;
-using log4net;
-using Microsoft.Xna.Framework;
-using MonoMod.RuntimeDetour;
-using Terraria.Localization;
 using Terraria.ModLoader.UI;
+using System.Runtime.Loader;
+using System.Runtime.CompilerServices;
+using Terraria.Localization;
+using Microsoft.Xna.Framework;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using Ionic.Zip;
+using MonoMod.RuntimeDetour;
 
 namespace Terraria.ModLoader.Core;
 
@@ -66,9 +67,11 @@ public static class AssemblyManager
 						LoadAssembly(modFile.GetBytes("lib/" + dll + ".dll"));
 					}
 
-					assembly = Debugger.IsAttached && File.Exists(properties.eacPath) ?
-						LoadAssembly(modFile.GetModAssembly(), File.ReadAllBytes(properties.eacPath)): //load the unmodified dll and EaC pdb
-						LoadAssembly(modFile.GetModAssembly(), modFile.GetModPdb());
+					byte[] pdbBytes = Debugger.IsAttached && File.Exists(properties.eacPath) ? File.ReadAllBytes(properties.eacPath) /* load the unmodified dll and EaC pdb */ : modFile.GetModPdb();
+
+					assembly = CoreModLoader.transformedAssemblyBytes.TryGetValue(Name!, out byte[] transformedAssemblyBytes)
+						? LoadAssembly(transformedAssemblyBytes, pdbBytes)
+						: LoadAssembly(modFile.GetModAssembly());
 				}
 
 				var mlc = new MetadataLoadContext(new MetadataResolver(this));
@@ -137,7 +140,10 @@ public static class AssemblyManager
 					return context.LoadFromByteArray(((ModLoadContext)GetLoadContext(runtime)).assemblyBytes[assemblyName.Name]);
 
 
-				return context.LoadFromAssemblyPath(runtime.Location);
+				if (CoreModLoader.transformedAssemblyBytes.TryGetValue(assemblyName.Name!, out byte[] bytes))
+					return context.LoadFromByteArray(bytes);
+
+				throw new Exception($"Unable to find bytes for {runtime.FullName}");
 			}
 		}
 
@@ -152,6 +158,7 @@ public static class AssemblyManager
 		private static Dictionary<string, Assembly> _redirects = new() {
 			["tModLoader"] = Assembly.GetExecutingAssembly(), // Unsure if still needed, but lets us ignore versioning when mods resolve
 			["FNA"] = typeof(Vector2).Assembly, // Unsure if still needed, but lets us ignore versioning when mods resolve
+			["Ionic.Zip.Reduced"] = typeof(ZipFile).Assembly, // Assembly name changed to DotNetZip
 			["Steamworks.NET"] = typeof(Steamworks.SteamApps).Assembly, // Version can change
 		};
 
@@ -212,6 +219,7 @@ public static class AssemblyManager
 			m.TModLoaderVersion = mod.properties.buildVersion;
 			m.TranslationForMods = mod.properties.translationMod ? mod.properties.RefNames(true).ToList() : null;
 			m.SourceFolder = Directory.Exists(mod.properties.modSource) ? mod.properties.modSource : "";
+			m.HasCoreModTransformers = mod.properties.hasCoreModTransformers;
 			return m;
 		}
 		catch (Exception e) {
@@ -290,7 +298,9 @@ public static class AssemblyManager
 
 	public static byte[] GetModAssembly(this TmodFile modFile) => modFile.GetBytes(modFile.GetModAssemblyFileName());
 
-	public static byte[] GetModPdb(this TmodFile modFile) => modFile.GetBytes(Path.ChangeExtension(modFile.GetModAssemblyFileName(), "pdb"));
+	internal static string GetModPdbFileName(this TmodFile modFile) => Path.ChangeExtension(modFile.GetModAssemblyFileName(), "pdb");
+
+	public static byte[] GetModPdb(this TmodFile modFile) => modFile.GetBytes(modFile.GetModPdbFileName());
 
 	private static ModLoadContext GetLoadContext(string name) => loadedModContexts.TryGetValue(name, out var value) ? value : throw new KeyNotFoundException(name);
 
@@ -332,7 +342,7 @@ public static class AssemblyManager
 		return false;
 	}
 
-	public static IEnumerable<Mod> GetDependencies(Mod mod) => GetLoadContext(mod.Name).dependencies.Select(m => ModLoader.GetMod(m.Name));
+	public static IEnumerable<Mod> GetDependencies(Mod mod) => GetLoadContext(mod.Name).dependencies.Select(m => ModLoader.GetMod(mod.Name));
 
 	/// <summary>
 	/// Gets all <see cref="Type"/>s loadable from the given <see cref="Assembly"/>.

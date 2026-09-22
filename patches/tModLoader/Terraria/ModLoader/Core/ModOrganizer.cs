@@ -1,12 +1,12 @@
-﻿using System;
+using Microsoft.CodeAnalysis;
+using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
-using Microsoft.CodeAnalysis;
-using Newtonsoft.Json;
 using Terraria.Localization;
 using Terraria.ModLoader.Exceptions;
 using Terraria.ModLoader.UI;
@@ -437,7 +437,7 @@ internal static class ModOrganizer
 
 	internal static bool LoadSide(ModSide side) => side != (Main.dedServ ? ModSide.Client : ModSide.Server);
 
-	internal static List<LocalMod> SelectAndSortMods(IEnumerable<LocalMod> availableMods, CancellationToken token)
+	internal static List<LocalMod> SelectAndSortMods(IEnumerable<LocalMod> availableMods, CancellationToken token, bool coreModLoading = false)
 	{
 		var missing = ModLoader.EnabledMods.Except(availableMods.Select(mod => mod.Name)).ToList();
 		if (missing.Any()) {
@@ -449,7 +449,7 @@ internal static class ModOrganizer
 		}
 
 		// Press shift while starting up tModLoader or while trapped in a reload cycle to skip loading all mods.
-		if (Main.instance.IsActive && Main.oldKeyState.PressingShift() || ModLoader.skipLoad || token.IsCancellationRequested) {
+		if (!coreModLoading && Main.instance.IsActive && Main.oldKeyState.PressingShift() || ModLoader.skipLoad || token.IsCancellationRequested) {
 			ModLoader.skipLoad = false;
 			Interface.loadMods.SetLoadStage("tModLoader.CancellingLoading");
 			return new();

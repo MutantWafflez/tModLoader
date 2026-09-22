@@ -1,18 +1,17 @@
+using log4net;
+using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Reflection;
-using JetBrains.Annotations;
-using log4net;
-using Microsoft.Xna.Framework.Graphics;
-using ReLogic.Content;
-using ReLogic.Content.Sources;
 using Terraria.ID;
 using Terraria.Localization;
-using Terraria.ModLoader.Config;
 using Terraria.ModLoader.Core;
 using Terraria.ModLoader.Exceptions;
+using System.Linq;
+using Terraria.ModLoader.Config;
+using ReLogic.Content;
+using ReLogic.Content.Sources;
 
 namespace Terraria.ModLoader;
 
@@ -75,6 +74,11 @@ public partial class Mod
 	/// The path to the source folder the mod was built from.
 	/// </summary>
 	public string SourceFolder { get; internal set; }
+
+	/// <summary>
+	/// Whether this mod was defined to have coremod transformers in the built.txt file, and thus will be denoted as Core Mod.
+	/// </summary>
+	public bool HasCoreModTransformers { get; internal set; }
 
 	/// <summary>
 	/// Whether or not this mod will autoload content by default. Autoloading content means you do not need to manually add content through methods.
