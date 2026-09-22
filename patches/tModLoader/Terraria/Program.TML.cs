@@ -359,7 +359,7 @@ public static partial class Program
 			SetSavePath();
 
 		    if (!isServer) {
-		    	NativeLibraries.CheckNativeFAudioDependencies();
+		    	ModLoader.Engine.NativeLibraries.CheckNativeFAudioDependencies();
 		       	FNALogging.RedirectLogs(); // Needs to run after CheckDependencies
 		    }
 		}
