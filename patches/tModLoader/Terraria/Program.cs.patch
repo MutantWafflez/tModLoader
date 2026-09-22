@@ -116,7 +116,7 @@
  		if (monoArgs)
  			args = Utils.ConvertMonoArgsToDotNet(args);
  
-@@ -166,6 +_,28 @@
+@@ -166,6 +_,38 @@
  		// Unify server and client dll via launch param
  		Main.dedServ = LaunchParameters.ContainsKey("-server");
  #endif
@@ -126,7 +126,17 @@
 +
 +		StartupSequenceTml(isServer);
 +
-+		LaunchGame_(isServer);
++	   if (!LaunchParameters.ContainsKey("-skipcore") && !LaunchParameters.ContainsKey("-build") && CoreModLoader.IsAnyCoreMods(out Mod[] nonCoreMods, out Mod[] coreMods)) {
++		   Logging.tML.InfoFormat("Core Mods found, initiating transformation process...");
++
++		   if (CoreModLoader.LaunchALCWithCoreMods(isServer, nonCoreMods, coreMods)) {
++			   return;
++		   }
++
++		   Logging.tML.Warn("Core Mods were found, but no assemblies were transformed. Launching tML as normal.");
++	   }
++
++	   LaunchGame_(isServer);
 +	}
 +
 +	// IMPORTANT: We really want arg parsing, logging, and monomod initialized before static Main()
