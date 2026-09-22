@@ -136,9 +136,11 @@ public static class AssemblyManager
 					return existing;
 
 				var runtime = mod.LoadFromAssemblyName(assemblyName);
-				if (string.IsNullOrEmpty(runtime.Location))
-					return context.LoadFromByteArray(((ModLoadContext)GetLoadContext(runtime)).assemblyBytes[assemblyName.Name]);
+				if (!string.IsNullOrEmpty(runtime.Location))
+					return context.LoadFromAssemblyPath(runtime.Location);
 
+				if (GetLoadContext(runtime) is ModLoadContext modLoadContext)
+					return context.LoadFromByteArray(modLoadContext.assemblyBytes[assemblyName.Name!]);
 
 				if (CoreModLoader.transformedAssemblyBytes.TryGetValue(assemblyName.Name!, out byte[] bytes))
 					return context.LoadFromByteArray(bytes);
@@ -158,7 +160,6 @@ public static class AssemblyManager
 		private static Dictionary<string, Assembly> _redirects = new() {
 			["tModLoader"] = Assembly.GetExecutingAssembly(), // Unsure if still needed, but lets us ignore versioning when mods resolve
 			["FNA"] = typeof(Vector2).Assembly, // Unsure if still needed, but lets us ignore versioning when mods resolve
-			["Ionic.Zip.Reduced"] = typeof(ZipFile).Assembly, // Assembly name changed to DotNetZip
 			["Steamworks.NET"] = typeof(Steamworks.SteamApps).Assembly, // Version can change
 		};
 
@@ -342,7 +343,7 @@ public static class AssemblyManager
 		return false;
 	}
 
-	public static IEnumerable<Mod> GetDependencies(Mod mod) => GetLoadContext(mod.Name).dependencies.Select(m => ModLoader.GetMod(mod.Name));
+	public static IEnumerable<Mod> GetDependencies(Mod mod) => GetLoadContext(mod.Name).dependencies.Select(m => ModLoader.GetMod(m.Name));
 
 	/// <summary>
 	/// Gets all <see cref="Type"/>s loadable from the given <see cref="Assembly"/>.
